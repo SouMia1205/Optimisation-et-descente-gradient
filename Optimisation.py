@@ -105,3 +105,25 @@ def pas_optimal(x, gradient):
         return float(min(valid_alphas))  # Retourner le plus petit pas valide
     else:
         return 0.01  # Pas par défaut si aucune solution valide n'est trouvée
+    
+# Méthode de Newton
+def hessian_f(x):
+    """
+    Calculer la matrice hessienne de la fonction objectif.
+    Args:
+        x (numpy array): Vecteur d'entrée [x1, x2, x3].
+    Returns:
+        numpy array: Matrice hessienne.
+    """
+    x1, x2, x3 = x
+    H = np.zeros((3, 3))  # Initialiser la matrice hessienne
+    H[0, 0] = 12*x1**2 + 2  # d²f/dx1²
+    H[0, 1] = 0             # d²f/dx1dx2
+    H[0, 2] = -2            # d²f/dx1dx3
+    H[1, 0] = 0             # d²f/dx2dx1
+    H[1, 1] = 4             # d²f/dx2²
+    H[1, 2] = -2            # d²f/dx2dx3
+    H[2, 0] = -2            # d²f/dx3dx1
+    H[2, 1] = -2            # d²f/dx3dx2
+    H[2, 2] = 2             # d²f/dx3²
+    return H
