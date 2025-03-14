@@ -166,3 +166,89 @@ x_min_newton, f_min_newton, traj_newton, f_newton = newton_method(x0)
 print(f"Minimum trouvé (Descente de gradient avec pas fixe) à: {x_min_fixed} avec valeur: {f_min_fixed}")
 print(f"Minimum trouvé (Descente de gradient avec pas optimal) à: {x_min_opt} avec valeur: {f_min_opt}")
 print(f"Minimum trouvé (Newton) à: {x_min_newton} avec valeur: {f_min_newton}")
+
+# Visualisation
+def visualize_optimization_with_contours(f, x0, traj_fixed, traj_optimal, traj_newton, f_fixed, f_optimal, f_newton, x_min_fixed, x_min_opt, x_min_newton):
+    """
+    Visualiser le processus d'optimisation avec des lignes de contour et des courbes de convergence.
+    Args:
+        f (function): Fonction objectif.
+        x0 (numpy array): Point initial.
+        traj_fixed (numpy array): Trajectoire de la descente de gradient avec pas fixe.
+        traj_optimal (numpy array): Trajectoire de la descente de gradient avec pas optimal.
+        traj_newton (numpy array): Trajectoire de la méthode de Newton.
+        f_fixed (numpy array): Valeurs de la fonction pour la descente de gradient avec pas fixe.
+        f_optimal (numpy array): Valeurs de la fonction pour la descente de gradient avec pas optimal.
+        f_newton (numpy array): Valeurs de la fonction pour la méthode de Newton.
+        x_min_fixed (numpy array): Point minimum trouvé par la descente de gradient avec pas fixe.
+        x_min_opt (numpy array): Point minimum trouvé par la descente de gradient avec pas optimal.
+        x_min_newton (numpy array): Point minimum trouvé par la méthode de Newton.
+    """
+    variables = sp.symbols('x1 x2 x3')  # Variables symboliques pour x1, x2, x3
+    f_symbolic = f(variables)  # Représentation symbolique de la fonction objectif
+    f_numeric = lambda x: f(x)  # Fonction numérique pour l'évaluation
+
+    # Créer une grille pour la visualisation
+    x1_min, x1_max = min(min(traj_fixed[:, 0]), min(traj_optimal[:, 0]), min(traj_newton[:, 0])) - 0.5, max(max(traj_fixed[:, 0]), max(traj_optimal[:, 0]), max(traj_newton[:, 0])) + 0.5
+    x2_min, x2_max = min(min(traj_fixed[:, 1]), min(traj_optimal[:, 1]), min(traj_newton[:, 1])) - 0.5, max(max(traj_fixed[:, 1]), max(traj_optimal[:, 1]), max(traj_newton[:, 1])) + 0.5
+
+    # Ajuster les bornes de la grille si elles sont trop étroites
+    if x1_max - x1_min < 2:
+        x1_center = (x1_max + x1_min) / 2
+        x1_min, x1_max = x1_center - 1, x1_center + 1
+    if x2_max - x2_min < 2:
+        x2_center = (x2_max + x2_min) / 2
+        x2_min, x2_max = x2_center - 1, x2_center + 1
+
+    # Créer une grille pour les lignes de contour
+    x1_grid = np.linspace(x1_min, x1_max, 100)
+    x2_grid = np.linspace(x2_min, x2_max, 100)
+    X1, X2 = np.meshgrid(x1_grid, x2_grid)
+    x3_value = (x_min_fixed[2] + x_min_opt[2] + x_min_newton[2]) / 3  # Valeur moyenne de x3 pour la visualisation
+
+    # Évaluer la fonction sur la grille
+    f_symbolic_lambda = sp.lambdify(variables, f_symbolic, "numpy")
+    Z = np.zeros_like(X1)
+    for i in range(X1.shape[0]):
+        for j in range(X1.shape[1]):
+            Z[i, j] = f_symbolic_lambda(X1[i, j], X2[i, j], x3_value)
+
+    # Tracer les lignes de contour et les trajectoires
+    fig = plt.figure(figsize=(18, 8))
+    ax1 = fig.add_subplot(121)
+    contour_levels = 20
+    contour = ax1.contour(X1, X2, Z, contour_levels, colors='k', alpha=0.4)
+    filled_contour = ax1.contourf(X1, X2, Z, contour_levels, cmap='viridis', alpha=0.7)
+    plt.colorbar(filled_contour, ax=ax1, label='f(x1, x2, x3_opt)')
+    ax1.plot(traj_fixed[:, 0], traj_fixed[:, 1], 'r.-', linewidth=1.5, label='Pas Fixe', markersize=6)
+    ax1.plot(traj_optimal[:, 0], traj_optimal[:, 1], 'b.-', linewidth=1.5, label='Pas Optimal', markersize=6)
+    ax1.plot(traj_newton[:, 0], traj_newton[:, 1], 'g.-', linewidth=1.5, label='Newton', markersize=6)
+    ax1.plot(x0[0], x0[1], 'yo', markersize=10, label='Point Initial')
+    ax1.plot(x_min_fixed[0], x_min_fixed[1], 'ro', markersize=10, label='Min (Pas Fixe)')
+    ax1.plot(x_min_opt[0], x_min_opt[1], 'bo', markersize=10, label='Min (Pas Optimal)')
+    ax1.plot(x_min_newton[0], x_min_newton[1], 'go', markersize=10, label='Min (Newton)')
+    ax1.set_xlabel('x1')
+    ax1.set_ylabel('x2')
+    ax1.set_title('Lignes de niveau et trajectoires d\'optimisation')
+    ax1.legend(loc='upper left')
+    ax1.grid(True, linestyle='--', alpha=0.6)
+
+    # Tracer la convergence des méthodes
+    ax2 = fig.add_subplot(122)
+    iterations_fixed = range(len(f_fixed))
+    iterations_optimal = range(len(f_optimal))
+    iterations_newton = range(len(f_newton))
+    ax2.plot(iterations_fixed, f_fixed, 'r.-', linewidth=2, label='Pas Fixe', markersize=4)
+    ax2.plot(iterations_optimal, f_optimal, 'b.-', linewidth=2, label='Pas Optimal', markersize=4)
+    ax2.plot(iterations_newton, f_newton, 'g.-', linewidth=2, label='Newton', markersize=4)
+    ax2.set_xlabel('Itérations')
+    ax2.set_ylabel('Valeur de la fonction objectif')
+    ax2.set_title('Convergence des méthodes d\'optimisation')
+    ax2.grid(True)
+    ax2.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# Appeler la fonction de visualisation
+visualize_optimization_with_contours(f, x0, traj_fixed, traj_optimal, traj_newton, f_fixed, f_optimal, f_newton, x_min_fixed, x_min_opt, x_min_newton)
