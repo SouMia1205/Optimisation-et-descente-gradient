@@ -127,3 +127,42 @@ def hessian_f(x):
     H[2, 1] = -2            # d²f/dx3dx2
     H[2, 2] = 2             # d²f/dx3²
     return H
+
+def newton_method(x0, max_iter=1000, tol=1e-6):
+    """
+    Méthode de Newton pour l'optimisation.
+    Args:
+        x0 (numpy array): Point initial.
+        max_iter (int): Nombre maximal d'itérations.
+        tol (float): Tolérance pour la convergence.
+    Returns:
+        tuple: (Point final, valeur de la fonction, trajectoire, valeurs de la fonction).
+    """
+    x = x0  # Initialiser le point de départ
+    traj = [x0]  # Stocker la trajectoire des points
+    f_values = [f(x0)]  # Stocker les valeurs de la fonction à chaque étape
+    for i in range(max_iter):
+        grad = grad_f(x)  # Calculer le gradient au point actuel
+        H = hessian_f(x)  # Calculer la matrice hessienne
+        delta_x = np.linalg.solve(H, -grad)  # Résoudre pour la direction de mise à jour
+        x_new = x + delta_x  # Mettre à jour le point
+        traj.append(x_new)  # Ajouter le nouveau point à la trajectoire
+        f_values.append(f(x_new))  # Ajouter la nouvelle valeur de la fonction
+        if np.linalg.norm(x_new - x) < tol:  # Vérifier la convergence
+            break
+        x = x_new  # Mettre à jour le point actuel
+    return x, f(x), np.array(traj), np.array(f_values)  # Retourner les résultats
+
+# Point initial
+x0 = np.array([0.0, 0.0, 0.0])  # Point de départ pour l'optimisation
+alpha = 0.01  # Pas fixe pour la descente de gradient
+
+# Exécuter les méthodes d'optimisation
+x_min_fixed, f_min_fixed, traj_fixed, f_fixed = gradient_descent_fixed_step(x0, alpha)
+x_min_opt, f_min_opt, traj_optimal, f_optimal = gradient_descent_optimal_step(x0)
+x_min_newton, f_min_newton, traj_newton, f_newton = newton_method(x0)
+
+# Afficher les résultats
+print(f"Minimum trouvé (Descente de gradient avec pas fixe) à: {x_min_fixed} avec valeur: {f_min_fixed}")
+print(f"Minimum trouvé (Descente de gradient avec pas optimal) à: {x_min_opt} avec valeur: {f_min_opt}")
+print(f"Minimum trouvé (Newton) à: {x_min_newton} avec valeur: {f_min_newton}")
