@@ -130,28 +130,42 @@ def hessian_f(x):
 
 def newton_method(x0, max_iter=1000, tol=1e-6):
     """
-    Méthode de Newton pour l'optimisation.
+    Méthode de Newton en utilisant explicitement l'inverse de la matrice hessienne.
+    
     Args:
         x0 (numpy array): Point initial.
         max_iter (int): Nombre maximal d'itérations.
         tol (float): Tolérance pour la convergence.
+    
     Returns:
         tuple: (Point final, valeur de la fonction, trajectoire, valeurs de la fonction).
     """
     x = x0  # Initialiser le point de départ
     traj = [x0]  # Stocker la trajectoire des points
     f_values = [f(x0)]  # Stocker les valeurs de la fonction à chaque étape
+    
     for i in range(max_iter):
         grad = grad_f(x)  # Calculer le gradient au point actuel
         H = hessian_f(x)  # Calculer la matrice hessienne
-        delta_x = np.linalg.solve(H, -grad)  # Résoudre pour la direction de mise à jour
+        
+        try:
+            H_inv = np.linalg.inv(H)  # Calculer explicitement l'inverse de la hessienne
+            delta_x = np.dot(H_inv, -grad)  # Calculer la mise à jour
+        except np.linalg.LinAlgError:
+            print("La matrice hessienne est singulière, arrêt de l'algorithme.")
+            break
+        
         x_new = x + delta_x  # Mettre à jour le point
         traj.append(x_new)  # Ajouter le nouveau point à la trajectoire
         f_values.append(f(x_new))  # Ajouter la nouvelle valeur de la fonction
-        if np.linalg.norm(x_new - x) < tol:  # Vérifier la convergence
+        
+        if np.linalg.norm(delta_x) < tol:  # Vérifier la convergence
             break
+        
         x = x_new  # Mettre à jour le point actuel
+    
     return x, f(x), np.array(traj), np.array(f_values)  # Retourner les résultats
+
 
 # Point initial
 x0 = np.array([0.0, 0.0, 0.0])  # Point de départ pour l'optimisation
