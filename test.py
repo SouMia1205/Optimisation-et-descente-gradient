@@ -4,28 +4,14 @@ import sympy as sp  # Pour les calculs symboliques
 import matplotlib.pyplot as plt  # Pour les visualisations
 from scipy.optimize import line_search  # Pour la recherche linéaire (non utilisé ici)
 from scipy.optimize import approx_fprime  # Pour approximer le gradient (non utilisé ici)
-
+np.seterr(all='raise')
 # Définir la fonction objectif
 def f(x):
-    """
-    Fonction objectif à minimiser.
-    Args:
-        x (numpy array): Vecteur d'entrée [x1, x2, x3].
-    Returns:
-        float: Valeur de la fonction en x.
-    """
     x1, x2, x3 = x
-    return x1*4 + x1 + 2*x2 + x3 - 6*x1 + 3*x2 - 2*x3(x1 + x2 + 1)
+    return x1**4 + x1**2 + 2*x2**2 + x3**2 - 6*x1 + 3*x2 - 2*x3*(x1 + x2 + 1)
 
 # Définir le gradient de la fonction objectif
 def grad_f(x):
-    """
-    Gradient de la fonction objectif.
-    Args:
-        x (numpy array): Vecteur d'entrée [x1, x2, x3].
-    Returns:
-        numpy array: Vecteur gradient [df/dx1, df/dx2, df/dx3].
-    """
     x1, x2, x3 = x
     df_dx1 = 4*x1**3 + 2*x1 - 6 - 2*x3  # Dérivée partielle par rapport à x1
     df_dx2 = 4*x2 + 3 - 2*x3             # Dérivée partielle par rapport à x2
@@ -34,16 +20,6 @@ def grad_f(x):
 
 # 1.1. Méthode de descente de gradient avec pas fixe
 def gradient_descent_fixed_step(x0, alpha, max_iter=1000, tol=1e-6):
-    """
-    Descente de gradient avec un pas fixe.
-    Args:
-        x0 (numpy array): Point initial.
-        alpha (float): Pas fixe.
-        max_iter (int): Nombre maximal d'itérations.
-        tol (float): Tolérance pour la convergence.
-    Returns:
-        tuple: (Point final, valeur de la fonction, trajectoire, valeurs de la fonction).
-    """
     x = x0  # Initialiser le point de départ
     traj = [x0]  # Stocker la trajectoire des points
     f_values = [f(x0)]  # Stocker les valeurs de la fonction à chaque étape
@@ -59,15 +35,6 @@ def gradient_descent_fixed_step(x0, alpha, max_iter=1000, tol=1e-6):
 
 # 1.2. Méthode de descente de gradient avec pas optimal
 def gradient_descent_optimal_step(x0, max_iter=1000, tol=1e-6):
-    """
-    Descente de gradient avec un pas optimal calculé à chaque itération.
-    Args:
-        x0 (numpy array): Point initial.
-        max_iter (int): Nombre maximal d'itérations.
-        tol (float): Tolérance pour la convergence.
-    Returns:
-        tuple: (Point final, valeur de la fonction, trajectoire, valeurs de la fonction).
-    """
     x = x0  # Initialiser le point de départ
     traj = [x0]  # Stocker la trajectoire des points
     f_values = [f(x0)]  # Stocker les valeurs de la fonction à chaque étape
@@ -83,14 +50,6 @@ def gradient_descent_optimal_step(x0, max_iter=1000, tol=1e-6):
     return x, f(x), np.array(traj), np.array(f_values)  # Retourner les résultats
 
 def pas_optimal(x, gradient):
-    """
-    Calculer le pas optimal pour la descente de gradient en utilisant la différenciation symbolique.
-    Args:
-        x (numpy array): Point actuel.
-        gradient (numpy array): Gradient au point actuel.
-    Returns:
-        float: Pas optimal.
-    """
     alpha = sp.Symbol('alpha', real=True, positive=True)  # Variable symbolique pour le pas
     # Define h(alpha) = f(x - alpha * gradient)
     x_vars = sp.symbols('x1 x2 x3')  # Variables symboliques pour x1, x2, x3
@@ -114,6 +73,27 @@ def hessian_f(x):
                   [-2, -2,2]])
     return H
 #Methode de GRCONJU
+def conjugate_gradient_optimal(x0, max_iter=1000, tol=1e-6):
+    x = x0
+    traj=[x0]
+    f_values = [f(x0)]
+    r = -grad_f(x)
+    d=r
+    for i in range(max_iter):
+        alpha = pas_optimal(x,d)
+        x_new = x + alpha * d
+        traj.append(x_new)
+        f_values.append(f(x_new))
+        r_new = -grad_f(x_new)
+        if np.linalg.norm(r_new) < tol:
+            break
+        beta = np.dot(r_new, r_new)/np.dot(r,r)
+        d = r_new+beta*d
+        x, r = x_new, r_new
+
+    return x, f(x), np.array(traj), np.array(f_values)
+
+
 def gradient_conjuguee(x0,max_iter=1000, tol=1e-6):
     x=x0  # Initialisation du point de départ
     traj = [x0] # Liste pour stocker les points parcourus
@@ -141,8 +121,9 @@ def gradient_conjuguee(x0,max_iter=1000, tol=1e-6):
     return x, f(x), np.array(traj), np.array(f_values)
 
 
+"""
 def newton_method(x0, max_iter=1000, tol=1e-6):
-    """
+   
     Méthode de Newton pour l'optimisation.
     Args:
         x0 (numpy array): Point initial.
@@ -150,7 +131,7 @@ def newton_method(x0, max_iter=1000, tol=1e-6):
         tol (float): Tolérance pour la convergence.
     Returns:
         tuple: (Point final, valeur de la fonction, trajectoire, valeurs de la fonction).
-    """
+    
     x = x0  # Initialiser le point de départ
     traj = [x0]  # Stocker la trajectoire des points
     f_values = [f(x0)]  # Stocker les valeurs de la fonction à chaque étape
@@ -165,7 +146,35 @@ def newton_method(x0, max_iter=1000, tol=1e-6):
             break
         x = x_new  # Mettre à jour le point actuel
     return x, f(x), np.array(traj), np.array(f_values)  # Retourner les résultats
+"""
 
+
+def newton_method_with_inverse(x0, max_iter=1000, tol=1e-6):
+    x = x0  # Initialiser le point de départ
+    traj = [x0]  # Stocker la trajectoire des points
+    f_values = [f(x0)]  # Stocker les valeurs de la fonction à chaque étape
+
+    for i in range(max_iter):
+        grad = grad_f(x)  # Calculer le gradient au point actuel
+        H = hessian_f(x)  # Calculer la matrice hessienne
+
+        try:
+            H_inv = np.linalg.inv(H)  # Calculer explicitement l'inverse de la hessienne
+            delta_x = np.dot(H_inv, -grad)  # Calculer la mise à jour de points
+        except np.linalg.LinAlgError:
+            print("La matrice hessienne est singulière, arrêt de l'algorithme.")
+            break
+
+        x_new = x + delta_x  # Mettre à jour le point
+        traj.append(x_new)  # Ajouter le nouveau point à la trajectoire
+        f_values.append(f(x_new))  # Ajouter la nouvelle valeur de la fonction
+
+        if np.linalg.norm(delta_x) < tol:  # Vérifier la convergence
+            break
+
+        x = x_new  # Mettre à jour le point actuel
+
+    return x, f(x), np.array(traj), np.array(f_values)  # Retourner les résultats
 # Point initial
 x0 = np.array([0.0, 0.0, 0.0])  # Point de départ pour l'optimisation
 alpha = 0.01  # Pas fixe pour la descente de gradient
@@ -173,8 +182,8 @@ alpha = 0.01  # Pas fixe pour la descente de gradient
 # Exécuter les méthodes d'optimisation
 x_min_fixed, f_min_fixed, traj_fixed, f_fixed = gradient_descent_fixed_step(x0, alpha)
 x_min_opt, f_min_opt, traj_optimal, f_optimal = gradient_descent_optimal_step(x0)
-x_min_newton, f_min_newton, traj_newton, f_newton = newton_method(x0)
-x_min_cg, f_min_cg, traj_cg, f_cg = gradient_conjuguee(x0)
+x_min_newton, f_min_newton, traj_newton, f_newton = newton_method_with_inverse(x0)#newton_method
+x_min_cg, f_min_cg, traj_cg, f_cg =gradient_conjuguee (x0) #gradient_conjuguee conjugate_gradient_optimal
 # Afficher les résultats
 print(f"Minimum trouvé (Descente de gradient avec pas fixe) à: {x_min_fixed} avec valeur: {f_min_fixed}")
 print(f"Minimum trouvé (Descente de gradient avec pas optimal) à: {x_min_opt} avec valeur: {f_min_opt}")
@@ -183,21 +192,6 @@ print(f"Minimum trouvé (Gradient conjugué) à: {x_min_cg} avec valeur: {f_min_
 
 # Visualisation
 def visualize_optimization_with_contours(f, x0, traj_fixed, traj_optimal, traj_newton,traj_cg, f_fixed, f_optimal, f_newton, f_cg, x_min_fixed, x_min_opt, x_min_newton,x_min_cg):
-    """
-    Visualiser le processus d'optimisation avec des lignes de contour et des courbes de convergence.
-    Args:
-        f (function): Fonction objectif.
-        x0 (numpy array): Point initial.
-        traj_fixed (numpy array): Trajectoire de la descente de gradient avec pas fixe.
-        traj_optimal (numpy array): Trajectoire de la descente de gradient avec pas optimal.
-        traj_newton (numpy array): Trajectoire de la méthode de Newton.
-        f_fixed (numpy array): Valeurs de la fonction pour la descente de gradient avec pas fixe.
-        f_optimal (numpy array): Valeurs de la fonction pour la descente de gradient avec pas optimal.
-        f_newton (numpy array): Valeurs de la fonction pour la méthode de Newton.
-        x_min_fixed (numpy array): Point minimum trouvé par la descente de gradient avec pas fixe.
-        x_min_opt (numpy array): Point minimum trouvé par la descente de gradient avec pas optimal.
-        x_min_newton (numpy array): Point minimum trouvé par la méthode de Newton.
-    """
     variables = sp.symbols('x1 x2 x3')  # Variables symboliques pour x1, x2, x3
     f_symbolic = f(variables)  # Représentation symbolique de la fonction objectif
     f_numeric = lambda x: f(x)  # Fonction numérique pour l'évaluation
