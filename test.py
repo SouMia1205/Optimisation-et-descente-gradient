@@ -18,6 +18,24 @@ def grad_f(x):
     df_dx3 = 2*x3 - 2*(x1 + x2 + 1)      # Dérivée partielle par rapport à x3
     return np.array([df_dx1, df_dx2, df_dx3])
 
+def is_convex_symbolic(f, x_vars):
+    H = sp.hessian(f, x_vars)
+    print("Hessienne symbolique :")
+    sp.pprint(H)
+    # Boucle sur chaque mineur principal d'ordre croissant
+    for i in range(1, len(x_vars) + 1):
+        # Extraction du mineur principal d’ordre i (coin supérieur gauche de la Hessienne)
+        minor = H[:i, :i].det()
+        print(f"Mineur principal d’ordre {i} : {minor}")
+        # Vérification symbolique si le mineur est toujours positif ou nul (non négatif)
+        is_nonneg = sp.ask(sp.Q.nonnegative(minor))
+        # Si on ne peut pas conclure que le mineur est non négatif, la fonction n'est pas convexe
+        if is_nonneg is not True:
+            print(f"Le mineur d'ordre {i} n'est pas toujours positif ou nul.")
+            return False
+    # Si tous les mineurs principaux sont non négatifs, la fonction est convexe
+    return True
+
 # 1.1. Méthode de descente de gradient avec pas fixe
 def gradient_descent_fixed_step(x0, alpha, max_iter=1000, tol=1e-6):
     x = x0  # Initialiser le point de départ
@@ -175,6 +193,16 @@ def newton_method_with_inverse(x0, max_iter=1000, tol=1e-6):
         x = x_new  # Mettre à jour le point actuel
 
     return x, f(x), np.array(traj), np.array(f_values)  # Retourner les résultats
+
+#-----test de conv----
+# Définir la fonction symbolique
+x1, x2, x3 = sp.symbols('x1 x2 x3')
+f_sym = x1**4 + x1**2 + 2*x2**2 + x3**2 - 6*x1 + 3*x2 - 2*x3*(x1 + x2 + 1)
+
+# Tester la convexité sans point numérique
+convex = is_convex_symbolic(f_sym, [x1, x2, x3])
+print("Fonction convexe :" if convex else " Fonction non convexe.")
+
 # Point initial
 x0 = np.array([0.0, 0.0, 0.0])  # Point de départ pour l'optimisation
 alpha = 0.01  # Pas fixe pour la descente de gradient
